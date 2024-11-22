@@ -78,8 +78,8 @@ def simulate_game(num_players,num_dice):
     active_players = set(players_dice.keys())
 
     current_bid = None
-    #Start with the first player
-    current_player = 0
+    #Start with a random player
+    current_player = random.choice(list(active_players))
 
     while len(active_players) >1:
         all_dice = []
@@ -130,7 +130,7 @@ def simulate_game(num_players,num_dice):
 #     print(results)
 
 if __name__ == "__main__":
-    num_players = 3
+    num_players = 5
     num_dice = 5
 
     # Initialize the results
