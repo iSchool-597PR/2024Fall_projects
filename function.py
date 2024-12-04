@@ -122,13 +122,6 @@ def simulate_game(num_players,num_dice):
     if num_players < 2 or num_dice <=0:
         raise ValueError("Number of players must be at least 2 and dice must be greater than 0.")
 
-    # I think these are a little bit duplicate
-    # number_of_players = num_players
-    # number_of_dice = num_dice
-    # player_1_dice = roll_dice(number_of_dice)
-    # player_2_dice = roll_dice(number_of_dice)
-    # all_dice = player_1_dice.extend(player_2_dice)
-
     #I change the way to get all_dice
     players_dice = {}
     for i in range(num_players):
@@ -190,16 +183,6 @@ def simulate_game(num_players,num_dice):
 
     return next(iter(active_players))
 
-# if __name__ == "__main__":
-#     results = {"player0 wins" : 0, "player1 wins": 0}
-#     for _ in range(10000):
-#         winner = simulate_game(2,5)
-#         if winner == 0 :
-#             results['player0 wins'] += 1
-#         else:
-#             results['player1 wins'] += 1
-#     print(results)
-
 if __name__ == "__main__":
     num_players = 5
     num_dice = 5
@@ -207,12 +190,12 @@ if __name__ == "__main__":
     # Initialize the results
     results = {}
     for i in range(num_players):
-        results[f"player{i} wins"] = 0
+        results[f"player{i}"] = 0
 
     # Simulate for n times game
-    for _ in range(1000):
+    for _ in range(3000):
         winner = simulate_game(num_players, num_dice)
-        results[f"player{winner} wins"] += 1
+        results[f"player{winner}"] += 1
 
     # print the results
     print("\nGame Results:")
