@@ -42,9 +42,11 @@ def valid_challenge(bid, all_dice):
 def random_bid_choice(current_bid,total_dice):
     """Random bid choice depends on current bid and number of dice."""
     # total_dice = num_dice * num_players
+    # bid should be started from the 1/10 of total dices
+    bid_starter = total_dice // 10 + 1
     if current_bid is None:
         #First random bid
-        quantity = random.randint(2,total_dice)
+        quantity = random.randint(bid_starter,total_dice)
         face_value = random.randint(1,6)
         return [quantity,face_value]
     else:
@@ -110,7 +112,7 @@ def update_all_dice(players_dice):
         all_dice.extend(players_dice[active_player])
     return all_dice
 
-def simulate_game(num_players,num_dice, starter = -1):
+def simulate_game(num_players,num_dice, starter = -1, special_rule = False):
     """Simulate the game between multiple players.
 
     Players alternately make bids or call "liar" to challenge the previous bid.
@@ -187,28 +189,40 @@ def simulate_game(num_players,num_dice, starter = -1):
             if valid_challenge(current_bid, all_dice):
                 #If the challenge is right, then the previous player lose
                 liar_record.append([bid_times,current_player,challenge_bid,'valid',active_players])
-                active_players.remove(previous_player)
-                players_dice.pop(previous_player)
-                current_bid = None
+                if not special_rule :
+                #under normal rule,the previous player loses the game and others restart bidding
+                    active_players.remove(previous_player)
+                    players_dice.pop(previous_player)
+                    current_bid = None
+                else:
+                #under special rule, the previous player loses  one of dice randomly and everyone restart_bidding
+                    players_dice[previous_player].pop(random.randint(0,len(players_dice[previous_player])-1))
+                    current_bid = None
+                    if len(players_dice[previous_player]) == 0:
+                        active_players.remove(previous_player)
+                        players_dice.pop(previous_player)
             else:
-                #If the challenge is wrong, then the current player lose
-                liar_record.append([bid_times,current_player, challenge_bid, 'not valid',active_players])
-                active_players.remove(current_player)
-                players_dice.pop(current_player)
-                current_bid = None
-                #Update the current player to next one
-                while current_player not in active_players:
-                    current_player = (current_player + 1) % num_players
-
-
-
+                liar_record.append([bid_times,current_player, challenge_bid, 'invalid',active_players])
+                if not special_rule:
+                # under normal rule,the current player loses the game and others restart bidding
+                    active_players.remove(current_player)
+                    players_dice.pop(current_player)
+                    current_bid = None
+                else:
+                # under special rule, the current player loses  one of dice randomly and everyone restart_bidding
+                    players_dice[current_player].pop(random.randint(0, len(players_dice[current_player]) - 1))
+                    current_bid = None
+                    #if the current player loses all of their dice, he loses.
+                    if len(players_dice[current_player]) == 0:
+                        active_players.remove(current_player)
+                        players_dice.pop(current_player)
         else:
             current_bid = action
-            current_player += 1
-            if current_player >= num_players:
-                current_player = 0
-            while current_player not in active_players:
-                current_player = (current_player + 1) % num_players
+        current_player += 1
+        if current_player >= num_players:
+            current_player = 0
+        while current_player not in active_players:
+            current_player = (current_player + 1) % num_players
 
     return next(iter(active_players)), first_player, bid_record, liar_record, bid_times,original_dice
 
@@ -236,9 +250,11 @@ if __name__ == "__main__":
 
     # Simulate for n times game
     for _ in range(1000):
-        winner, first_player, bid_record, liar_record, bid_times, original_dices = simulate_game(num_players, num_dice,0)
+        winner, first_player, bid_record, liar_record, bid_times, original_dices = simulate_game(num_players, num_dice,-1,special_rule = True)
         results[f"player{winner} wins"] += 1
         first_players[f"game starts with player {first_player}"] += 1
+        print(original_dices)
+        print(bid_record)
 
 
 
