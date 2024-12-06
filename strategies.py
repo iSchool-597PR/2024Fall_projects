@@ -10,11 +10,10 @@ from collections import Counter
 
 class Strategy:
     """Base class for player strategies."""
-    def make_bid(self,current_bid,dice_counts,total_dice, own_dice):
+    def make_bid(self,current_bid,total_dice, own_dice):
         """
 
         :param current_bid: Current bid, [quantity,face_value] or None.
-        :param dice_counts: A Counter object of all dice.
         :param total_dice: Current number of total dice.
         :param own_dice: Player's own dice.
         :return: A new bid [quantity,face_value] or "liar".
@@ -78,7 +77,9 @@ class Strategy:
 
 class RandomStrategy(Strategy):
     """Strategy that randomly decides to bid or call 'liar'."""
-    def make_bid(self,current_bid,dice_counts,total_dice, own_dice):
+    def make_bid(self,current_bid,total_dice, own_dice):
+        if current_bid is None:
+            return self.new_bid(current_bid, total_dice)
         bid_or_liar = random.choice(["bid","liar"])
         if bid_or_liar == "liar":
             return "liar"
@@ -86,7 +87,7 @@ class RandomStrategy(Strategy):
             return self.new_bid(current_bid,total_dice)
 
 class ThresholdStrategy(Strategy):
-    def make_bid(self,current_bid,dice_counts,total_dice, own_dice):
+    def make_bid(self,current_bid,total_dice, own_dice):
         if current_bid is None:
             return self.new_bid(current_bid,total_dice)
         quantity, face_value = current_bid
@@ -100,7 +101,7 @@ class ThresholdStrategy(Strategy):
 
 class OptimalStrategy(Strategy):
     """Player make bid base their own dice quantity and face value."""
-    def make_bid(self,current_bid,dice_counts,total_dice, own_dice):
+    def make_bid(self,current_bid,total_dice, own_dice):
         if current_bid is None:
             return self.new_bid(current_bid,total_dice)
         quantity, face_value = current_bid

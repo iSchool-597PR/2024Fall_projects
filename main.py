@@ -11,11 +11,11 @@ def main():
     # Simulation parameters
     num_simulations = 1000  # Number of simulations per strategy
     num_dice = 5             # Number of dice per player at the start
-    test_strategies = ["Random", "Threshold", "Optimal"]  # Strategies to test for Player 0
+    test_strategies = ["RandomStrategy", "Threshold", "Optimal"]  # Strategies to test for Player 0
 
     # Define available strategies
     strategy_classes = {
-        "Random": RandomStrategy,
+        "RandomStrategy": RandomStrategy,
         "Threshold": ThresholdStrategy,
         "Optimal": OptimalStrategy
     }
@@ -60,31 +60,6 @@ def main():
                 print(f"Player {player_id} ({strategy_name}) Wins: {wins} times ({win_percentage:.2f}%)")
             else:
                 print(f"Player {player_id} (RandomStrategy) Wins: {wins} times ({win_percentage:.2f}%)")
-
-    # Additionally, simulate the case where all four players use RandomStrategy for comparison
-    print(f"\nStarting simulation where all four players use RandomStrategy")
-    strategies_random = {i: RandomStrategy() for i in range(4)}
-    win_counts_random = {i: 0 for i in range(4)}
-    print(f"Running {num_simulations} simulations...\n")
-
-    for sim in range(1, num_simulations + 1):
-        winner = simulate_game(4, num_dice, strategies_random)
-        if winner is not None:
-            win_counts_random[winner] += 1
-        else:
-            # In case of a draw, you can choose to handle it as needed
-            pass
-
-        # Optionally, print progress every 100 simulations
-        if sim % 100 == 0:
-            print(f"Completed {sim} simulations...")
-
-    # Calculate and display results
-    print("\nSimulation Results (All Random Strategies):")
-    for player_id in range(4):
-        wins = win_counts_random[player_id]
-        win_percentage = (wins / num_simulations) * 100
-        print(f"Player {player_id} (RandomStrategy) Wins: {wins} times ({win_percentage:.2f}%)")
 
 
 if __name__ == "__main__":

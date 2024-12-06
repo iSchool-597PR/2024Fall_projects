@@ -45,29 +45,40 @@ def simulate_game(num_players,num_dice,strategies):
         for player in active_players:
             total_dice += len(players_dice[player])
 
-        all_dice = update_all_dice(players_dice)
+
         strategy = strategies[current_player]
         own_dice = players_dice[current_player]
-        action = strategy.make_bid(current_bid, all_dice, total_dice,own_dice)
+        action = strategy.make_bid(current_bid, total_dice, own_dice)
 
         previous_player = current_player
-        # Determine the next player in sequence
-        current_player = (current_player + 1) % num_players
-        while current_player not in active_players:
-            current_player = (current_player + 1) % num_players
+        while True:
+            previous_player -= 1
+            if previous_player < 0:
+                previous_player = num_players - 1
+            if previous_player in active_players:
+                break
 
         if action == "liar":
+            all_dice = update_all_dice(players_dice)
             if valid_challenge(current_bid, all_dice):
-                #If the challenge is right, then the previous player lose
+                # If the challenge is right, then the previous player lose
                 active_players.remove(previous_player)
                 players_dice.pop(previous_player)
                 current_bid = None
             else:
-                #If the challenge is wrong, then the current player lose
+                # If the challenge is wrong, then the current player lose
                 active_players.remove(current_player)
                 players_dice.pop(current_player)
                 current_bid = None
+                # Update the current player to next one
+                while current_player not in active_players:
+                    current_player = (current_player + 1) % num_players
         else:
             current_bid = action
+            current_player += 1
+            if current_player >= num_players:
+                current_player = 0
+            while current_player not in active_players:
+                current_player = (current_player + 1) % num_players
 
     return next(iter(active_players))
