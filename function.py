@@ -110,7 +110,7 @@ def update_all_dice(players_dice):
         all_dice.extend(players_dice[active_player])
     return all_dice
 
-def simulate_game(num_players,num_dice):
+def simulate_game(num_players,num_dice, starter = -1):
     """Simulate the game between multiple players.
 
     Players alternately make bids or call "liar" to challenge the previous bid.
@@ -145,7 +145,10 @@ def simulate_game(num_players,num_dice):
 
     current_bid = None
     #Start with a random player
-    current_player = random.choice(list(active_players))
+    if starter == -1:
+        current_player = random.choice(list(active_players))
+    else:
+        current_player = starter
 
     # record the first player and the bid records for validation
     first_player = current_player
@@ -233,7 +236,7 @@ if __name__ == "__main__":
 
     # Simulate for n times game
     for _ in range(1000):
-        winner, first_player, bid_record, liar_record, bid_times, original_dices = simulate_game(num_players, num_dice)
+        winner, first_player, bid_record, liar_record, bid_times, original_dices = simulate_game(num_players, num_dice,0)
         results[f"player{winner} wins"] += 1
         first_players[f"game starts with player {first_player}"] += 1
 
