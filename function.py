@@ -39,71 +39,6 @@ def valid_challenge(bid, all_dice):
         actual_quantity = dice_result[1] + dice_result[face_value]
     return quantity > actual_quantity
 
-def random_bid_choice(current_bid,total_dice):
-    """Random bid choice depends on current bid and number of dice."""
-    # total_dice = num_dice * num_players
-    # bid should be started from the 1/10 of total dices
-    bid_starter = total_dice // 10 + 1
-    if current_bid is None:
-        #First random bid
-        quantity = random.randint(bid_starter,total_dice)
-        face_value = random.randint(1,6)
-        return [quantity,face_value]
-    else:
-        current_bid = [int(value) for value in current_bid]
-        quantity, face_value = current_bid
-
-        #If already reach max quantity and max face value 6, the player can only challenge for that
-        if quantity == total_dice and face_value == 6:
-            return "liar"
-
-        bid_choice = random.choice(["bid", "liar"])
-
-        # new_quantity = random.randint(min(quantity + 1,total_dice), total_dice)
-        # new_face_value = random.randint(min(face_value + 1,6), 6)
-        available_strategies = ["same_quantity", "same_face_value", "both_increase", "higher_quantity_smaller_face","liar"]
-
-        #If the face value is already 6, then we cannot bid for same_quantity and both_increase
-        if face_value == 6:
-            available_strategies.remove("same_quantity")
-            available_strategies.remove("both_increase")
-
-        #If the face value is 1, then we cannot bid for higher_quantity_smaller_face
-        if face_value == 1:
-            available_strategies.remove("higher_quantity_smaller_face")
-
-        #If the quantity is max, then we can only use same_quantity strategy
-        if quantity == total_dice:
-            available_strategies = ["same_quantity"] if face_value < 6 else []
-
-        if not available_strategies:
-            return "liar"
-
-        bid_type = random.choice(available_strategies)
-
-        if bid_type == "same_quantity":
-            #Increase the face value but same quantity
-            new_face_value = random.randint(face_value+1,6)
-            return [quantity,new_face_value]
-
-        elif bid_type == "same_face_value":
-            #Increase the quantity but same face value
-            new_quantity = random.randint(quantity+1,total_dice)
-            return [new_quantity,face_value]
-
-        elif bid_type == "both_increase":
-            #Increase both quantity and face value
-            new_quantity = random.randint(quantity+1,total_dice)
-            new_face_value = random.randint(face_value+1,6)
-            return [new_quantity,new_face_value]
-        elif bid_type == "higher_quantity_smaller_face":
-            #Increase the quantity but use smaller face value
-            new_quantity = random.randint(quantity+1,total_dice)
-            new_face_value = random.randint(1,face_value-1) if face_value > 1 else 1
-            return [new_quantity,new_face_value]
-        elif bid_type == "liar":
-            return "liar"
-
 
 def update_all_dice(players_dice):
     """Update the global all_dice structure when a player is removed."""
@@ -112,7 +47,7 @@ def update_all_dice(players_dice):
         all_dice.extend(players_dice[active_player])
     return all_dice
 
-def simulate_game(num_players,num_dice, starter = -1, special_rule = False):
+def simulate_game(num_players,num_dice, strategies, special_rule = False, starter = -1):
     """Simulate the game between multiple players.
 
     Players alternately make bids or call "liar" to challenge the previous bid.
@@ -171,7 +106,9 @@ def simulate_game(num_players,num_dice, starter = -1, special_rule = False):
         for player in active_players:
             total_dice += len(players_dice[player])
 
-        action = random_bid_choice(current_bid,total_dice)
+        strategy = strategies[current_player]
+        own_dice = players_dice[current_player]
+        action = strategy.make_action(current_bid, total_dice, own_dice)
         bid_record.append({current_player : action})
         bid_times += 1
 
