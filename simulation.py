@@ -50,6 +50,7 @@ def simulate_game(num_players,num_dice,strategies):
         own_dice = players_dice[current_player]
         action = strategy.make_bid(current_bid, total_dice, own_dice)
 
+        #Find the previous player
         previous_player = current_player
         while True:
             previous_player -= 1
