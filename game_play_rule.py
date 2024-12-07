@@ -16,12 +16,6 @@ def roll_dice(num_dice):
     """
     return [random.randint(1,6) for _ in range(num_dice)]
 
-def count_dice(all_dice):
-    """Using Counter to count each dice face value
-    :param all_dice: List of dice to count.
-    :return: Counter with face value as keys and their counts as values.
-    """
-    return Counter(all_dice)
 
 def valid_challenge(bid, all_dice):
     """Examine whether a bid is valid or not.
@@ -32,7 +26,7 @@ def valid_challenge(bid, all_dice):
     quantity, face_value = bid
     if not isinstance(quantity, int) or not isinstance(face_value, int):
         raise ValueError("Bid values must be integers.")
-    dice_result = count_dice(all_dice)
+    dice_result = Counter(all_dice)
     if face_value == 1:
         actual_quantity = dice_result[1]
     else:
@@ -47,7 +41,7 @@ def update_all_dice(players_dice):
         all_dice.extend(players_dice[active_player])
     return all_dice
 
-def simulate_game(num_players,num_dice, strategies, special_rule = False, starter = -1):
+def simulate_game(num_players,num_dice, strategies, special_rule = False, first_caller = -1):
     """Simulate the game between multiple players.
 
     Players alternately make bids or call "liar" to challenge the previous bid.
@@ -82,10 +76,10 @@ def simulate_game(num_players,num_dice, strategies, special_rule = False, starte
 
     current_bid = None
     #Start with a random player
-    if starter == -1:
+    if first_caller == -1:
         current_player = random.choice(list(active_players))
     else:
-        current_player = starter
+        current_player = first_caller
 
     # record the first player and the bid records for validation
     first_player = current_player
