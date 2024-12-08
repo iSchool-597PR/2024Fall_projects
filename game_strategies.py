@@ -38,18 +38,18 @@ class Strategy:
                                     "higher_quantity_smaller_face"]
             quantity, face_value = current_bid
 
+            # If the quantity is max, then we can only use same_quantity strategy
+            if quantity == total_dice:
+                available_strategies = ["same_quantity"] if face_value < 6 else []
+
             # If the face value is already 6, then we cannot bid for same_quantity and both_increase
             if face_value == 6:
                 available_strategies.remove("same_quantity")
                 available_strategies.remove("both_increase")
 
             # If the face value is 1, then we cannot bid for higher_quantity_smaller_face
-            if face_value == 1:
+            elif face_value == 1:
                 available_strategies.remove("higher_quantity_smaller_face")
-
-            # If the quantity is max, then we can only use same_quantity strategy
-            if quantity == total_dice:
-                available_strategies = ["same_quantity"] if face_value < 6 else []
 
             if not available_strategies:
                 return "liar"
@@ -93,12 +93,14 @@ class Strategy:
             face_preference[face] = own_counter.get(face, 0) + (wildcards if face != 1 else 0)
 
         # Sort face values based on their counts in descending order
-        sorted_faces = sorted(face_values, key=lambda x: face_preference[x], reverse=True)
+        # sorted_faces = sorted(face_values, key=lambda x: face_preference[x], reverse=True)
+        items = face_preference.items()
+        sorted_items = sorted(items, key=lambda item: item[1], reverse=True)
+        sorted_faces = {k: v for k, v in sorted_items}
         return sorted_faces
 
 
     def inform_bid(self, current_bid, total_dice, own_dice):
-        #it seems like need to revised to satisfy different current bid situation
         """
         Generate a new bid based on the preferred faces and own dice.
 
@@ -108,31 +110,45 @@ class Strategy:
         :return: A new bid [quantity, face_value] or "liar".
         """
 
+        # Get preferred faces sorted by quantity
         preferred_faces = self.preferred_faces(own_dice)
+        # Find the most preferred faces
+        most_preferred_face = list(preferred_faces.keys())[0]
 
-        #make first bid,using the face value with max frequency as the bidding face_value
+        #Make first bid,using the face value with max frequency as the bidding face_value
         if current_bid is None:
-            face_value = preferred_faces[0]
+            face_value = most_preferred_face
             quantity_starter = total_dice // 10 + 1
             quantity = random.randint(quantity_starter, max(quantity_starter, total_dice // 2))
             return [quantity, face_value]
 
-        # if it is not the first bid, attempt to increase the bid based on preferred faces
+        # If it is not the first bid, attempt to increase the bid based on preferred faces
         quantity, face_value = current_bid
-        for face in preferred_faces:
-            if face > face_value:
-                # Try to increase the face value with the same or slightly higher quantity
-                new_quantity = quantity
-                if new_quantity < total_dice:
-                    new_quantity = random.choice([new_quantity, new_quantity + 1])
-                return [new_quantity, face]
 
-        # If no preferred face is higher, try increasing the quantity with the same face
-        #it seems like need to modify to satisfy different current bid situation
-        if quantity < total_dice:
-            return [quantity + 1, face_value]
+        if face_value < most_preferred_face:
+            return [quantity, most_preferred_face]
+
         else:
-            return "liar"
+            if quantity == total_dice:
+                return "liar"
+            else:
+                new_quantity = min(quantity + 1, total_dice)
+                return [new_quantity, most_preferred_face]
+
+        # for face in preferred_faces:
+        #     if face > face_value:
+        #         # Try to increase the face value with the same or slightly higher quantity
+        #         new_quantity = quantity
+        #         if new_quantity < total_dice:
+        #             new_quantity = random.choice([new_quantity, new_quantity + 1])
+        #         return [new_quantity, face]
+        #
+        # # If no preferred face is higher, try increasing the quantity with the same face
+        # #it seems like need to modify to satisfy different current bid situation
+        # if quantity < total_dice:
+        #     return [quantity + 1, face_value]
+        # else:
+        #     return "liar"
 
 
     def new_bid(self, current_bid, total_dice, own_dice):
@@ -154,9 +170,15 @@ class Strategy:
             return self.random_bid(current_bid, total_dice)
 
     def liar_decide(self, current_bid, total_dice, own_dice):
-        #todo": if normal_threshold is True, use the half of total dice as threshold,
-        # if optimal_threshold is True, use the expected dice count as threshold
+        """
+        if optimal_threshold is True, use the expected dice count as threshold
         # otherwise,choose bid or challenge randomly"
+        :param current_bid: Current bid, [quantity, face_value].
+        :param total_dice: Total number of dice in play.
+        :param own_dice: Player's own dice.
+        :return: "liar" or "bid".
+        """
+
         bid_or_liar = "bid"
         if not self.normal_threshold and not self.optimal_threshold:
             bid_or_liar = random.choice(["bid", "liar"]) #??? the probability of liar should be 50%?
@@ -168,25 +190,29 @@ class Strategy:
             else:
                 bid_or_liar = "bid"
         elif self.optimal_threshold:
+            #TODO:我改了下逻辑你看是否有问题或者有什么更好的阈值设定,
+            # 现在的是用手上的骰子数+其他所有玩家剩余骰子的一半来计算每一个骰子的阈值
             quantity, face_value = current_bid
             own_counter = Counter(own_dice)
             own_face_count = own_counter.get(face_value, 0)
-            if face_value != 1: #???好像没有考虑=1的情况
+            #Here is to recalculate the face value besides 1 because 1 is wild
+            if face_value != 1:
                 own_face_count += own_counter.get(1, 0)
-                # Estimate the probability that the current bid is correct
-                estimated_total = own_face_count
-                remaining_dice = total_dice - len(own_dice)
 
-                # Average probability of each face (excluding wildcards if necessary)
-                # Assuming each die has a 1/6 chance to be the desired face
-                ###???这个weights好像应该是4:2
-                estimated_total += sum(random.choices([0, 1], weights=[5, 1], k=remaining_dice))
+            remaining_dice = total_dice - len(own_dice)
+            # Use 50% of remaining dice to count the threshold
+            expected_remaining_face_count = remaining_dice * 0.5
+            threshold = own_face_count + expected_remaining_face_count
+                # # Estimate the probability that the current bid is correct
+                # estimated_total = own_face_count
+                # remaining_dice = total_dice - len(own_dice)
+                #
+                # # Average probability of each face (excluding wildcards if necessary)
+                # # Assuming each die has a 1/6 chance to be the desired face
+                # ###???这个weights好像应该是4:2
+                # estimated_total += sum(random.choices([0, 1], weights=[5, 1], k=remaining_dice))
 
-                # Simple heuristic: if estimated_total is likely, continue bidding; else, call 'liar'
-                # Here can implement a more sophisticated probability check further
-                # For simplicity, we'll use the expected value
-                expected_count = (total_dice) * (2 / 6)  # Probability of a face including wildcards (if applicable)
-            if quantity > expected_count + own_face_count:
+            if quantity > threshold:
                 bid_or_liar = "liar"
             else:
                 bid_or_liar = "bid"
