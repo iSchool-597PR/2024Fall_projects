@@ -79,9 +79,7 @@ class Strategy:
         available_strategies = ["same_quantity", "same_face_value", "both_increase",
                                     "higher_quantity_smaller_face"]
 
-        # If the quantity is max, then we can only use same_quantity strategy
-        if quantity == total_dice:
-            available_strategies = ["same_quantity"] if face_value < 6 else []
+
         # If the face value is already 6, then we cannot bid for same_quantity and both_increase
         if face_value == 6:
             available_strategies.remove("same_quantity")
@@ -89,6 +87,10 @@ class Strategy:
         # If the face value is 1, then we cannot bid for higher_quantity_smaller_face
         elif face_value == 1:
             available_strategies.remove("higher_quantity_smaller_face")
+
+        # If the quantity is max, then we can only use same_quantity strategy
+        if quantity == total_dice:
+            available_strategies = ["same_quantity"] if face_value < 6 else []
 
         if not available_strategies:
             # If no strategies are available, return "liar"
@@ -243,7 +245,7 @@ class Strategy:
         :param current_bid: The current bid in the game.
         :param total_dice: Total number of dice in the game.
         :param own_dice: List of integers representing the player's own dice.
-        :return: The new bid as an list.
+        :return: The new bid as a list.
 
         Strategy:
         - If `self.prefer_bid` is True, use the `inform_bid` method, considering own dice.
