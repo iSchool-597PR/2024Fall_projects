@@ -8,12 +8,13 @@ and simulating an entire game until a single winner remains.
 Functions:
 - roll_dice(num_dice): Roll a specified number of dice and return the results.
 - valid_challenge(bid, all_dice): Check if a challenge (calling "liar") on the previous bid is valid.
-- update_all_dice(players_dice): Update the global list of all dice after a player is removed.
+- update_all_dice(players_dice): Update the global list of all dice after a challenge action happened.
 - simulate_game(num_players, num_dice, strategies, special_rule=False, first_caller=-1): Simulate a full game.
 
 """
 import random
 from collections import Counter
+import game_strategies as stra
 
 
 def roll_dice(num_dice):
@@ -132,7 +133,7 @@ def simulate_game(num_players,num_dice, strategies, special_rule = False, first_
     liar_record = []
     bid_times = 0
 
-
+    #simulate the game
     while len(active_players) >1:
         total_dice = 0
         for player in active_players:
@@ -157,7 +158,7 @@ def simulate_game(num_players,num_dice, strategies, special_rule = False, first_
             challenge_bid = current_bid
             if valid_challenge(current_bid, all_dice):
                 #If the challenge is right, then the previous player lose
-                liar_record.append([bid_times,current_player,challenge_bid,'valid',active_players])
+                liar_record.append([bid_times,current_player,challenge_bid,'valid',len(active_players)])
                 if not special_rule :
                     # Under normal rule,the previous player loses the game and others restart bidding
                     active_players.remove(previous_player)
@@ -171,7 +172,7 @@ def simulate_game(num_players,num_dice, strategies, special_rule = False, first_
                         active_players.remove(previous_player)
                         players_dice.pop(previous_player)
             else:
-                liar_record.append([bid_times,current_player, challenge_bid, 'invalid',active_players])
+                liar_record.append([bid_times,current_player, challenge_bid, 'invalid',len(active_players)])
                 if not special_rule:
                     # Under normal rule,the current player loses the game and others restart bidding
                     active_players.remove(current_player)
@@ -197,39 +198,42 @@ def simulate_game(num_players,num_dice, strategies, special_rule = False, first_
 
 # if __name__ == "__main__":
 #     results = {"player0 wins" : 0, "player1 wins": 0}
-#     for _ in range(10000):
+#     for _ in range(1000):
 #         winner = simulate_game(2,5)
 #         if winner == 0 :
 #             results['player0 wins'] += 1
 #         else:
 #             results['player1 wins'] += 1
 #     print(results)
-#
-# if __name__ == "__main__":
-#     num_players = 5
-#     num_dice = 5
-#
-#     # Initialize the results
-#     results = {}
-#     first_players = {}
-#     for i in range(num_players):
-#         results[f"player{i} wins"] = 0
-#         first_players[f'game starts with player {i}'] = 0
-#
-#
-#     # Simulate for n times game
-#     for _ in range(1000):
-#         winner, first_player, bid_record, liar_record, bid_times, original_dices = simulate_game(num_players, num_dice,-1,special_rule = True)
-#         results[f"player{winner} wins"] += 1
-#         first_players[f"game starts with player {first_player}"] += 1
-#         print(original_dices)
-#         print(bid_record)
-#
-#
-#
-#     # print the results
-#     print("\nGame Results:")
-#     for player, wins in results.items():
-#         print(f"{player} wins: {wins}")
-#     for player, starts in first_players.items():
-#         print(f"{player}: {starts}")
+
+if __name__ == "__main__":
+    num_players = 5
+    num_dice = 5
+
+    # Initialize the results
+    results = {}
+    first_players = {}
+    for i in range(num_players):
+        results[f"player{i} wins"] = 0
+        first_players[f'game starts with player {i}'] = 0
+    Strategies = {}
+    for i in range(num_players):
+        Strategies[i] = stra.Strategy()
+
+    # Simulate for n times game
+    for _ in range(10):
+        winner, first_player, bid_record, liar_record, bid_times, original_dices = simulate_game(num_players, num_dice,Strategies)
+        results[f"player{winner} wins"] += 1
+        first_players[f"game starts with player {first_player}"] += 1
+        print(original_dices)
+        print(bid_record)
+        print(liar_record)
+
+
+
+    # print the results
+    print("\nGame Results:")
+    for player, wins in results.items():
+        print(f"{player} wins: {wins}")
+    for player, starts in first_players.items():
+        print(f"{player}: {starts}")

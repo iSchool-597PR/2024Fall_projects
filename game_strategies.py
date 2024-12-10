@@ -14,22 +14,45 @@ class Strategy:
 
     Attributes:
     - prefer_bid (bool): When True, prefer to bid using the face value with the highest count in the player's dice.
-    - normal_threshold (bool): When True, use half of the total dice as the threshold for deciding "liar".
-    - optimal_threshold (bool): When True, use the expected dice count based on the player's dice for the threshold.
+    - liar_threshold (str): Strategy for deciding when to call "liar".
+        - "Random": Randomly choose to bid or call "liar".
+        - "Normal": Use half of the total dice as the threshold to call "liar".
+        - "Optimal": Use the sum of the player's dice count and half of the remaining dice as the threshold to call "liar".
     - conservative_increase (bool): When True, bid quantity increases by 1; otherwise, quantity increases randomly.
     """
-    def __init__(self,prefer_bid = False,normal_threshold = False,optimal_threshold = False, conservative_increase = False):
+    def __init__(self,prefer_bid = False,liar_threshold ="Random", conservative_increase = False):
         """
         Initialize the strategy.
 
         :param prefer_bid: Whether to prioritize bids based on own dice.
-        :param normal_threshold: Whether to use half of total dice as the threshold for "liar".
-        :param optimal_threshold: Whether to use expected dice count as the threshold for "liar".
+        :param liar_threshold (str): Strategy for deciding when to call "liar".
+                - "Random": Randomly choose to bid or call "liar".
+                - "Normal": Use half of the total dice as the threshold to call "liar".
+                - "Optimal": Use the sum of the player's dice count and half of the remaining dice as the threshold to call "liar".
         :param conservative_increase: Whether to increase bid quantity conservatively (+1) or randomly.
+        >>> s1 = Strategy()
+        >>> s1.prefer_bid
+        False
+        >>> s1.liar_threshold
+        'Random'
+        >>> s1.conservative_increase
+        False
+        >>> s2 = Strategy(prefer_bid=True, liar_threshold="Normal", conservative_increase=True)
+        >>> s2.prefer_bid
+        True
+        >>> s2.liar_threshold
+        'Normal'
+        >>> s2.conservative_increase
+        True
+        >>> Strategy(liar_threshold="Aggressive")
+        Traceback (most recent call last):
+        ...
+        ValueError: liar_threshold must be one of: 'Random', 'Normal', 'Optimal'.
         """
+        if liar_threshold not in {"Random", "Normal", "Optimal"}:
+            raise ValueError("liar_threshold must be one of: 'Random', 'Normal', 'Optimal'.")
         self.prefer_bid = prefer_bid
-        self.optimal_threshold = optimal_threshold
-        self.normal_threshold = normal_threshold
+        self.liar_threshold = liar_threshold
         self.conservative_increase = conservative_increase
 
     def random_bid(self,current_bid, total_dice):
@@ -152,7 +175,9 @@ class Strategy:
 
     def inform_bid(self, current_bid, total_dice, own_dice):
         """
-        Generate a new bid based on the preferred faces and own dice.
+        Generate a new bid based on the preferred faces and own dice. If one of the most perfered face is bigger than the
+        face value of current_bid,use "same quantity but higher face value" stretegy, return[same quantity, perfered face value];
+        Otherwise, use "higer quantity but smaller face value" strategy, return [increased quantity, prefered face value]
 
         :param current_bid: Current bid, [quantity, face_value].
         :param total_dice: Total number of dice in play.
@@ -203,24 +228,20 @@ class Strategy:
         for face in top_faces:
             if face > face_value:
                 next_face = face
-                break
+                return [quantity, next_face]
 
-        if next_face is None:
-            # All top faces are less than or equal to current face_value
-            if quantity == total_dice:
-                # No further bids possible, call "liar"
-                return "liar"
-            else:
-                # Use the smallest face value from top_faces with increased quantity
-                smallest_face = top_faces[0]
-                if self.conservative_increase:
-                    new_quantity = min(quantity + 1, total_dice)
-                else:
-                    new_quantity = random.randint(quantity + 1, total_dice)
-                return [new_quantity, smallest_face]
+        # All top faces are less than or equal to current face_value
+        if quantity == total_dice:
+            # No further bids possible, call "liar"
+            return "liar"
         else:
-            # Replace with the next smallest top face value
-            return [quantity, next_face]
+            # Use the smallest face value from top_faces with increased quantity
+            smallest_face = top_faces[0]
+            if self.conservative_increase:
+                new_quantity = min(quantity + 1, total_dice)
+            else:
+                new_quantity = random.randint(quantity + 1, total_dice)
+            return [new_quantity, smallest_face]
 
         # for face in preferred_faces:
         #     if face > face_value:
@@ -258,20 +279,26 @@ class Strategy:
 
     def liar_decide(self, current_bid, total_dice, own_dice):
         """
-        if optimal_threshold is True, use the expected dice count as threshold
-        Decide whether to call "liar" based on the current bid and strategy.
+        When liar_threshold equals to "Random", choose bid or challenge randomly;
+        when liar_threshold equals to "Normal", use half of the total dice as the threshold for deciding whether to challenge;
+        When liar_threshold equals to "Opotimal",use own dice  + half of the remaining dice as the threshold for deciding whether to challenge.
 
         :param current_bid: Current bid, [quantity, face_value].
         :param total_dice: Total number of dice in play.
         :param own_dice: Player's own dice.
         :return: "liar" or "bid".
 
-        >>> s1= Strategy(optimal_threshold=True)
+
+        >>> s1= Strategy(liar_threshold = "Random")
+        >>> result = s1.liar_decide([5, 3], 20, [1, 3, 3, 6])
+        >>> result in ["bid","liar"]
+        True
+        >>> s1= Strategy(liar_threshold = "Normal")
         >>> s1.liar_decide([5, 3], 20, [1, 3, 3, 6])
         'bid'
-        >>> s1.liar_decide([11, 6], 20, [1, 3, 3, 6])
+        >>> s1.liar_decide([11, 3], 20, [1, 3, 3, 6])
         'liar'
-        >>> s2 = Strategy(optimal_threshold=True)
+        >>> s2 = Strategy(liar_threshold = "Optimal")
         >>> s2.liar_decide([5, 3], 20, [1, 3, 3, 6])
         'bid'
         >>> s2.liar_decide([11, 3], 20, [1, 3, 3, 6])
@@ -279,20 +306,17 @@ class Strategy:
         >>> s2.liar_decide([15, 6], 20, [1, 3, 3, 6])
         'liar'
         """
-
         bid_or_liar = "bid"
-        if not self.normal_threshold and not self.optimal_threshold:
-            bid_or_liar = random.choice(["bid", "liar"]) #??? the probability of liar should be 50%?
-        elif self.normal_threshold:
+        if self.liar_threshold == "Random":
+            bid_or_liar = random.choice(["bid", "liar"])
+        elif self.liar_threshold == "Normal":
             quantity, face_value = current_bid
             threshold = total_dice // 2
             if quantity > threshold:
                 bid_or_liar = "liar"
             else:
                 bid_or_liar = "bid"
-        elif self.optimal_threshold:
-            #TODO:我改了下逻辑你看是否有问题或者有什么更好的阈值设定,
-            # 现在的是用手上的骰子数+其他所有玩家剩余骰子的一半来计算每一个骰子的阈值
+        elif self.liar_threshold == "Optimal":
             quantity, face_value = current_bid
             own_counter = Counter(own_dice)
             own_face_count = own_counter.get(face_value, 0)
@@ -304,15 +328,6 @@ class Strategy:
             # Use 50% of remaining dice to count the threshold
             expected_remaining_face_count = remaining_dice * 0.5
             threshold = own_face_count + expected_remaining_face_count
-                # # Estimate the probability that the current bid is correct
-                # estimated_total = own_face_count
-                # remaining_dice = total_dice - len(own_dice)
-                #
-                # # Average probability of each face (excluding wildcards if necessary)
-                # # Assuming each die has a 1/6 chance to be the desired face
-                # ###???这个weights好像应该是4:2
-                # estimated_total += sum(random.choices([0, 1], weights=[5, 1], k=remaining_dice))
-
             if quantity > threshold:
                 bid_or_liar = "liar"
             else:
