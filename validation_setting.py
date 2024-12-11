@@ -1,6 +1,7 @@
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 
 class Validation_varaibales:
@@ -41,6 +42,7 @@ class Validation_varaibales:
         liar_occur_bid = pd.DataFrame(data,
                                            columns=['quantity', 'face_value', 'times', 'valid_times', 'invalid_times'])
         self.liar_result = {}
+        self.max_quantity =  {key: 0 for key in range( num_players * num_dice + 1)}
         for i in range(num_players):
             self.results[f"player{i}"] = 0
             self.first_players[f'player{i}'] = 0
@@ -108,6 +110,8 @@ class Validation_varaibales:
         # record the original dice distribution
         for key, values in original_dices.items():
             self.original[key] += values
+            if key == 1:
+                self.max_quantity[values] += 1
 
         # record the liar call results
         for i in range(len(liar_record)):
@@ -167,7 +171,7 @@ class Validation_varaibales:
         """
         win_rate_df = pd.DataFrame(list(self.results.items()), columns=["Player", "Wins"])
         win_rate_df['Win Rate'] = win_rate_df['Wins'] / self.times
-        win_rate_df["Win Rate"] = win_rate_df["Win Rate"].apply(lambda x: f"{x:.2%}")
+        #win_rate_df["Win Rate"] = win_rate_df["Win Rate"].apply(lambda x: f"{x:.2%}")
         return win_rate_df
 
     def check_first_player(self):
@@ -187,7 +191,7 @@ class Validation_varaibales:
         """
         start_rate_df = pd.DataFrame(list(self.first_players.items()), columns=["Player", "Start times"])
         start_rate_df['Start rate'] = start_rate_df['Start times'] / self.times
-        start_rate_df["Start rate"] = start_rate_df["Start rate"].apply(lambda x: f"{x:.2%}")
+        #start_rate_df["Start rate"] = start_rate_df["Start rate"].apply(lambda x: f"{x:.2%}")
         return start_rate_df
 
     def check_liar_call(self,player):
@@ -202,9 +206,9 @@ class Validation_varaibales:
         print(liar_occur_bid)
         # draw the heatmap of challenge_bid
         pivot_table =liar_occur_bid.pivot(index='face_value', columns='quantity', values='times')
-        sns.heatmap(pivot_table, annot=False, fmt="d", cmap="coolwarm", cbar=True)
-        plt.title("Heatmap of Quantity vs Face Value")
-        plt.xlabel("Quantity")
+        sns.heatmap(pivot_table, annot=True, fmt="d", cmap="coolwarm", cbar=True)
+        plt.title("Heatmap of Quantity percentage vs Face Value")
+        plt.xlabel("Quantity percentage")
         plt.ylabel("Face Value")
         plt.show()
 
@@ -222,8 +226,8 @@ class Validation_varaibales:
         print(grouped_liar)
         plt.figure(figsize=(8, 6))
         plt.plot(grouped_liar.index, grouped_liar['valid_rate'], marker='o', label='Valid Rate')
-        plt.title("Valid Rate across Quantity")
-        plt.xlabel("Quantity")
+        plt.title("Valid Rate across Quantity percentage")
+        plt.xlabel("Quantity percentage")
         plt.ylabel("Valid Rate")
         plt.ylim(0, 1)  # Valid rate is a ratio (0 to 1)
         plt.grid(True)
